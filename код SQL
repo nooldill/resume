@@ -1,0 +1,23 @@
+WITH sessions AS (
+    SELECT
+        user_id,
+        time,
+        CASE
+            WHEN (time - LAG(time) OVER (PARTITION BY user_id ORDER BY time)) > 30 OR LAG(time) OVER (PARTITION BY user_id ORDER BY time) IS NULL THEN 1
+            ELSE 0
+        END AS new_session_flag
+    FROM logs
+),
+session_groups AS (
+    SELECT
+        user_id,
+        time,
+        SUM(new_session_flag) OVER (PARTITION BY user_id ORDER BY time) AS session_id
+    FROM sessions
+)
+SELECT
+    user_id,
+    COUNT(DISTINCT session_id) AS cnt
+FROM session_groups
+GROUP BY user_id
+ORDER BY user_id;
